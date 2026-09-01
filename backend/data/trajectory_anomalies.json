@@ -1,0 +1,59 @@
+[
+    {
+        "type": "RESTRICTED_ROUTE",
+        "plate": "AS01CD4321",
+        "from_camera": "CAM_03",
+        "to_camera": "CAM_01",
+        "timestamp": "2026-08-29 10:40:00"
+    },
+    {
+        "type": "IMPOSSIBLE_SPEED",
+        "plate_candidate": "CH01AZ9999",
+        "matched_with": "CH01AZ9999",
+        "similarity": 1.0,
+        "from_camera": "CAM_01",
+        "to_camera": "CAM_03",
+        "required_speed_kmph": 270.0,
+        "from_timestamp": "2026-08-29 10:41:00",
+        "to_timestamp": "2026-08-29 10:43:00"
+    },
+    {
+        "type": "RESTRICTED_ROUTE",
+        "plate": "DL3CAB9876",
+        "from_camera": "CAM_03",
+        "to_camera": "CAM_01",
+        "timestamp": "2026-08-29 19:33:19"
+    },
+    {
+        "type": "RESTRICTED_ROUTE",
+        "plate": "UP16AT4321",
+        "from_camera": "CAM_03",
+        "to_camera": "CAM_01",
+        "timestamp": "2026-08-29 19:35:00"
+    },
+    {
+        "type": "RESTRICTED_ROUTE",
+        "plate": "GJ01WE1899",
+        "from_camera": "CAM_03",
+        "to_camera": "CAM_01",
+        "timestamp": "2026-08-29 20:00:00"
+    },
+    {
+        "type": "IMPOSSIBLE_SPEED",
+        "plate_candidate": "GJ99ZX9090",
+        "matched_with": "GJ99ZX9090",
+        "similarity": 1.0,
+        "from_camera": "CAM_01",
+        "to_camera": "CAM_03",
+        "required_speed_kmph": 540.0,
+        "from_timestamp": "2026-08-29 20:20:00",
+        "to_timestamp": "2026-08-29 20:21:00"
+    },
+    {
+        "type": "RESTRICTED_ROUTE",
+        "plate": "MH20RT4321",
+        "from_camera": "CAM_03",
+        "to_camera": "CAM_01",
+        "timestamp": "2026-08-29 20:40:00"
+    }
+]

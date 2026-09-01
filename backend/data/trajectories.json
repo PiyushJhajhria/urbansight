@@ -1,0 +1,414 @@
+[
+    {
+        "plate": "DL3CAB9876",
+        "route": [
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 10:00:00",
+                "plate_read": "DL3CAB9876",
+                "lat": 21.1702,
+                "lon": 72.8311
+            },
+            {
+                "camera_id": "CAM_02",
+                "timestamp": "2026-08-29 10:06:00",
+                "plate_read": "DL3CAB987G",
+                "lat": 21.185,
+                "lon": 72.82
+            },
+            {
+                "camera_id": "CAM_03",
+                "timestamp": "2026-08-29 10:15:00",
+                "plate_read": "DL3CAB9876",
+                "lat": 21.2,
+                "lon": 72.81
+            },
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 19:33:19",
+                "plate_read": "DL3CAB9876",
+                "lat": 21.1702,
+                "lon": 72.8311
+            }
+        ]
+    },
+    {
+        "plate": "HR26DQ5100",
+        "route": [
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 10:01:00",
+                "plate_read": "HR26DQ5100",
+                "lat": 21.1702,
+                "lon": 72.8311
+            },
+            {
+                "camera_id": "CAM_02",
+                "timestamp": "2026-08-29 10:09:00",
+                "plate_read": "HR26DQ510O",
+                "lat": 21.185,
+                "lon": 72.82
+            },
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 22:12:33",
+                "plate_read": "HR26DQ5100",
+                "lat": 21.1702,
+                "lon": 72.8311
+            }
+        ]
+    },
+    {
+        "plate": "UP16AT4321",
+        "route": [
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 10:02:00",
+                "plate_read": "UP16AT4321",
+                "lat": 21.1702,
+                "lon": 72.8311
+            },
+            {
+                "camera_id": "CAM_03",
+                "timestamp": "2026-08-29 10:14:00",
+                "plate_read": "UP16AT4321",
+                "lat": 21.2,
+                "lon": 72.81
+            },
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 19:35:00",
+                "plate_read": "UP16AT4321",
+                "lat": 21.1702,
+                "lon": 72.8311
+            }
+        ]
+    },
+    {
+        "plate": "GJ05AB1234",
+        "route": [
+            {
+                "camera_id": "CAM_03",
+                "timestamp": "2026-08-29 10:03:00",
+                "plate_read": "GJ05AB1234",
+                "lat": 21.2,
+                "lon": 72.81
+            },
+            {
+                "camera_id": "CAM_02",
+                "timestamp": "2026-08-29 10:10:00",
+                "plate_read": "GJ05AB1234",
+                "lat": 21.185,
+                "lon": 72.82
+            },
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 10:16:00",
+                "plate_read": "GJ05AB1234",
+                "lat": 21.1702,
+                "lon": 72.8311
+            }
+        ]
+    },
+    {
+        "plate": "MH12XY4567",
+        "route": [
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 10:04:00",
+                "plate_read": "MH12XY4567",
+                "lat": 21.1702,
+                "lon": 72.8311
+            },
+            {
+                "camera_id": "CAM_02",
+                "timestamp": "2026-08-29 10:12:00",
+                "plate_read": "MH12XY4567",
+                "lat": 21.185,
+                "lon": 72.82
+            }
+        ]
+    },
+    {
+        "plate": "KA03MN6789",
+        "route": [
+            {
+                "camera_id": "CAM_02",
+                "timestamp": "2026-08-29 10:05:00",
+                "plate_read": "KA03MN6789",
+                "lat": 21.185,
+                "lon": 72.82
+            },
+            {
+                "camera_id": "CAM_03",
+                "timestamp": "2026-08-29 10:13:00",
+                "plate_read": "KA03MN6789",
+                "lat": 21.2,
+                "lon": 72.81
+            }
+        ]
+    },
+    {
+        "plate": "RJ14CP2468",
+        "route": [
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 10:07:00",
+                "plate_read": "RJ14CP2468",
+                "lat": 21.1702,
+                "lon": 72.8311
+            },
+            {
+                "camera_id": "CAM_02",
+                "timestamp": "2026-08-29 10:12:30",
+                "plate_read": "RJ14CP2468",
+                "lat": 21.185,
+                "lon": 72.82
+            },
+            {
+                "camera_id": "CAM_03",
+                "timestamp": "2026-08-29 10:21:00",
+                "plate_read": "RJ14CP246B",
+                "lat": 21.2,
+                "lon": 72.81
+            }
+        ]
+    },
+    {
+        "plate": "PB10ZZ9090",
+        "route": [
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 10:08:00",
+                "plate_read": "PB10ZZ9090",
+                "lat": 21.1702,
+                "lon": 72.8311
+            },
+            {
+                "camera_id": "CAM_03",
+                "timestamp": "2026-08-29 10:35:00",
+                "plate_read": "PB10ZZ9090",
+                "lat": 21.2,
+                "lon": 72.81
+            }
+        ]
+    },
+    {
+        "plate": "TN22BC1357",
+        "route": [
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 10:20:00",
+                "plate_read": "TN22BC1357",
+                "lat": 21.1702,
+                "lon": 72.8311
+            },
+            {
+                "camera_id": "CAM_02",
+                "timestamp": "2026-08-29 10:26:00",
+                "plate_read": "TN22BC1357",
+                "lat": 21.185,
+                "lon": 72.82
+            },
+            {
+                "camera_id": "CAM_03",
+                "timestamp": "2026-08-29 10:34:00",
+                "plate_read": "TN22BC1357",
+                "lat": 21.2,
+                "lon": 72.81
+            }
+        ]
+    },
+    {
+        "plate": "WB06EF8080",
+        "route": [
+            {
+                "camera_id": "CAM_02",
+                "timestamp": "2026-08-29 10:22:00",
+                "plate_read": "WB06EF8080",
+                "lat": 21.185,
+                "lon": 72.82
+            },
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 10:29:00",
+                "plate_read": "WB06EF8080",
+                "lat": 21.1702,
+                "lon": 72.8311
+            }
+        ]
+    },
+    {
+        "plate": "MP09JK1111",
+        "route": [
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 10:24:00",
+                "plate_read": "MP09JK1111",
+                "lat": 21.1702,
+                "lon": 72.8311
+            },
+            {
+                "camera_id": "CAM_02",
+                "timestamp": "2026-08-29 10:31:00",
+                "plate_read": "MP09JKI111",
+                "lat": 21.185,
+                "lon": 72.82
+            }
+        ]
+    },
+    {
+        "plate": "TS08UV2468",
+        "route": [
+            {
+                "camera_id": "CAM_02",
+                "timestamp": "2026-08-29 10:25:00",
+                "plate_read": "TS08UV2468",
+                "lat": 21.185,
+                "lon": 72.82
+            },
+            {
+                "camera_id": "CAM_03",
+                "timestamp": "2026-08-29 10:33:00",
+                "plate_read": "TS08UV2468",
+                "lat": 21.2,
+                "lon": 72.81
+            }
+        ]
+    },
+    {
+        "plate": "AS01CD4321",
+        "route": [
+            {
+                "camera_id": "CAM_03",
+                "timestamp": "2026-08-29 10:27:00",
+                "plate_read": "AS01CD4321",
+                "lat": 21.2,
+                "lon": 72.81
+            },
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 10:40:00",
+                "plate_read": "AS01CD4321",
+                "lat": 21.1702,
+                "lon": 72.8311
+            }
+        ]
+    },
+    {
+        "plate": "BR01AA7007",
+        "route": [
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 10:30:00",
+                "plate_read": "BR01AA7007",
+                "lat": 21.1702,
+                "lon": 72.8311
+            },
+            {
+                "camera_id": "CAM_02",
+                "timestamp": "2026-08-29 10:38:00",
+                "plate_read": "BR01AA7007",
+                "lat": 21.185,
+                "lon": 72.82
+            }
+        ]
+    },
+    {
+        "plate": "GJ01WE1899",
+        "route": [
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 10:45:00",
+                "plate_read": "GJ01WE1899",
+                "lat": 21.1702,
+                "lon": 72.8311
+            },
+            {
+                "camera_id": "CAM_02",
+                "timestamp": "2026-08-29 10:51:00",
+                "plate_read": "GJ01WE1899",
+                "lat": 21.185,
+                "lon": 72.82
+            },
+            {
+                "camera_id": "CAM_03",
+                "timestamp": "2026-08-29 10:59:00",
+                "plate_read": "GJ01WE1899",
+                "lat": 21.2,
+                "lon": 72.81
+            },
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 20:00:00",
+                "plate_read": "GJ01WE1899",
+                "lat": 21.1702,
+                "lon": 72.8311
+            },
+            {
+                "camera_id": "CAM_02",
+                "timestamp": "2026-08-29 20:05:00",
+                "plate_read": "GJ01WE1899",
+                "lat": 21.185,
+                "lon": 72.82
+            }
+        ]
+    },
+    {
+        "plate": "KL07CD5555",
+        "route": [
+            {
+                "camera_id": "CAM_02",
+                "timestamp": "2026-08-29 10:46:00",
+                "plate_read": "KL07CD5555",
+                "lat": 21.185,
+                "lon": 72.82
+            },
+            {
+                "camera_id": "CAM_03",
+                "timestamp": "2026-08-29 10:54:00",
+                "plate_read": "KL07CD5555",
+                "lat": 21.2,
+                "lon": 72.81
+            }
+        ]
+    },
+    {
+        "plate": "AP39EF2020",
+        "route": [
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 10:48:00",
+                "plate_read": "AP39EF2020",
+                "lat": 21.1702,
+                "lon": 72.8311
+            },
+            {
+                "camera_id": "CAM_02",
+                "timestamp": "2026-08-29 10:55:00",
+                "plate_read": "AP39EF2020",
+                "lat": 21.185,
+                "lon": 72.82
+            }
+        ]
+    },
+    {
+        "plate": "MH20RT4321",
+        "route": [
+            {
+                "camera_id": "CAM_03",
+                "timestamp": "2026-08-29 20:30:00",
+                "plate_read": "MH20RT4321",
+                "lat": 21.2,
+                "lon": 72.81
+            },
+            {
+                "camera_id": "CAM_01",
+                "timestamp": "2026-08-29 20:40:00",
+                "plate_read": "MH20RT4321",
+                "lat": 21.1702,
+                "lon": 72.8311
+            }
+        ]
+    }
+]
