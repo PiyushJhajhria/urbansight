@@ -1,10 +1,15 @@
-import { useEffect, useMemo } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import L from "leaflet";
 
 import {
-  Circle,
   CircleMarker,
   MapContainer,
+  Marker,
   Popup,
   Polyline,
   TileLayer,
@@ -13,125 +18,550 @@ import {
 } from "react-leaflet";
 
 import {
+  getRoadNetwork,
+} from "../api";
+
+import {
   asArray,
   plateColor,
-  routeLatLngs,
   validCoords,
 } from "../utils/data";
 
 
-const DEFAULT_CENTER = [21.185, 72.82];
+// ============================================================
+// MAP CONFIG
+// ============================================================
+
+const DEFAULT_CENTER = [
+  21.185,
+  72.82,
+];
 
 
 // ============================================================
-// MAP AUTO FIT
+// MAP EFFECTS
 // ============================================================
 
-function MapEffects({ points }) {
+function MapEffects({
+  points,
+}) {
   const map = useMap();
 
-
   useEffect(() => {
-    const timer = window.setTimeout(
-      () => map.invalidateSize(),
-      100
-    );
+    const timer =
+      window.setTimeout(() => {
+        map.invalidateSize();
+      }, 100);
 
     return () =>
       window.clearTimeout(timer);
   }, [map]);
 
-
   useEffect(() => {
-    if (!points.length) return;
+    if (!points.length) {
+      return;
+    }
 
+    try {
+      const bounds =
+        L.latLngBounds(points);
 
-    map.fitBounds(
-      L.latLngBounds(points),
-      {
-        padding: [50, 50],
-        maxZoom: 13,
+      if (bounds.isValid()) {
+        map.fitBounds(
+          bounds,
+          {
+            padding: [
+              50,
+              50,
+            ],
+
+            maxZoom:
+              14,
+          }
+        );
       }
-    );
-  }, [map, points]);
-
+    } catch (error) {
+      console.error(
+        "Map bounds error:",
+        error
+      );
+    }
+  }, [
+    map,
+    points,
+  ]);
 
   return null;
 }
 
 
 // ============================================================
-// CAMERA DENSITY RANKING
+// ROAD POINT NORMALIZER
 // ============================================================
 
-function getDensityLevels(cameraPoints) {
-  const sorted = [...cameraPoints].sort(
-    (a, b) =>
-      Number(b.vehicle_count || 0) -
-      Number(a.vehicle_count || 0)
+function normalizeRoadPoints(
+  points
+) {
+  return asArray(points)
+    .filter(
+      (point) =>
+        point?.lat != null &&
+        point?.lon != null
+    )
+    .map(
+      (point) => [
+        Number(
+          point.lat
+        ),
+
+        Number(
+          point.lon
+        ),
+      ]
+    )
+    .filter(
+      ([lat, lon]) =>
+        Number.isFinite(
+          lat
+        ) &&
+        Number.isFinite(
+          lon
+        )
+    );
+}
+
+
+// ============================================================
+// CAMERA-PAIR KEY
+// ============================================================
+
+function pairKey(
+  cameraA,
+  cameraB
+) {
+  return [
+    cameraA,
+    cameraB,
+  ]
+    .sort()
+    .join("-");
+}
+
+
+// ============================================================
+// COUNT VEHICLES USING EACH CAMERA SEGMENT
+// ============================================================
+
+function buildSegmentCounts(
+  trajectories
+) {
+  const counts = {};
+
+  asArray(
+    trajectories
+  ).forEach(
+    (trajectory) => {
+      const route =
+        asArray(
+          trajectory?.route
+        ).filter(
+          validCoords
+        );
+
+      for (
+        let i = 0;
+        i <
+        route.length - 1;
+        i += 1
+      ) {
+        const from =
+          route[i]
+            ?.camera_id;
+
+        const to =
+          route[i + 1]
+            ?.camera_id;
+
+        if (
+          !from ||
+          !to ||
+          from === to
+        ) {
+          continue;
+        }
+
+        const key =
+          pairKey(
+            from,
+            to
+          );
+
+        counts[key] =
+          (
+            counts[key] ||
+            0
+          ) + 1;
+      }
+    }
   );
 
+  return counts;
+}
 
-  const result = {};
+
+// ============================================================
+// ROAD TRAFFIC LEVEL
+// ============================================================
+
+function getRoadTrafficInfo(
+  count,
+  maxCount
+) {
+  if (
+    !count ||
+    count <= 0
+  ) {
+    return {
+      level:
+        "No traffic data",
+
+      color:
+        "#64748b",
+
+      weight:
+        4,
+    };
+  }
+
+  if (
+    maxCount <= 1
+  ) {
+    return {
+      level:
+        "Low",
+
+      color:
+        "#22c55e",
+
+      weight:
+        6,
+    };
+  }
+
+  const ratio =
+    count /
+    maxCount;
+
+  if (
+    ratio >= 0.67
+  ) {
+    return {
+      level:
+        "High",
+
+      color:
+        "#ef4444",
+
+      weight:
+        10,
+    };
+  }
+
+  if (
+    ratio >= 0.34
+  ) {
+    return {
+      level:
+        "Moderate",
+
+      color:
+        "#f59e0b",
+
+      weight:
+        8,
+    };
+  }
+
+  return {
+    level:
+      "Low",
+
+    color:
+      "#22c55e",
+
+    weight:
+      6,
+  };
+}
 
 
-  sorted.forEach((camera, index) => {
-    if (sorted.length === 1) {
-      result[camera.camera_id] = {
-        level: "High",
-        color: "#ef4444",
-      };
+// ============================================================
+// FIND ROAD SEGMENT
+// ============================================================
 
-      return;
+function getRoadSegment(
+  roadNetwork,
+  fromCamera,
+  toCamera
+) {
+  const direct =
+    asArray(
+      roadNetwork
+    ).find(
+      (route) =>
+        route
+          .from_camera ===
+          fromCamera &&
+        route
+          .to_camera ===
+          toCamera
+    );
+
+  if (direct) {
+    return {
+      ...direct,
+
+      latlngs:
+        normalizeRoadPoints(
+          direct.points
+        ),
+    };
+  }
+
+  const reverse =
+    asArray(
+      roadNetwork
+    ).find(
+      (route) =>
+        route
+          .from_camera ===
+          toCamera &&
+        route
+          .to_camera ===
+          fromCamera
+    );
+
+  if (reverse) {
+    return {
+      ...reverse,
+
+      from_camera:
+        fromCamera,
+
+      to_camera:
+        toCamera,
+
+      latlngs:
+        normalizeRoadPoints(
+          reverse.points
+        ).reverse(),
+    };
+  }
+
+  return null;
+}
+
+
+// ============================================================
+// BUILD VEHICLE ROAD TRAJECTORY
+// ============================================================
+
+function buildRoadTrajectory(
+  trajectory,
+  roadNetwork
+) {
+  const observations =
+    asArray(
+      trajectory?.route
+    ).filter(
+      validCoords
+    );
+
+  if (
+    observations.length <
+    2
+  ) {
+    return observations.map(
+      (point) => [
+        Number(
+          point.lat
+        ),
+
+        Number(
+          point.lon
+        ),
+      ]
+    );
+  }
+
+  const completeRoute =
+    [];
+
+  for (
+    let i = 0;
+    i <
+    observations.length - 1;
+    i += 1
+  ) {
+    const current =
+      observations[i];
+
+    const next =
+      observations[
+        i + 1
+      ];
+
+    const roadSegment =
+      getRoadSegment(
+        roadNetwork,
+        current.camera_id,
+        next.camera_id
+      );
+
+    const segment =
+      roadSegment
+        ?.latlngs
+        ?.length >= 2
+
+        ? roadSegment
+            .latlngs
+
+        : [
+            [
+              Number(
+                current.lat
+              ),
+
+              Number(
+                current.lon
+              ),
+            ],
+
+            [
+              Number(
+                next.lat
+              ),
+
+              Number(
+                next.lon
+              ),
+            ],
+          ];
+
+    if (i === 0) {
+      completeRoute.push(
+        ...segment
+      );
+    } else {
+      completeRoute.push(
+        ...segment.slice(
+          1
+        )
+      );
     }
+  }
+
+  return completeRoute;
+}
 
 
-    if (sorted.length === 2) {
-      result[camera.camera_id] =
-        index === 0
-          ? {
-              level: "High",
-              color: "#ef4444",
-            }
-          : {
-              level: "Low",
-              color: "#22c55e",
-            };
+// ============================================================
+// NUMBERED CAMERA OBSERVATION ICON
+// ============================================================
 
-      return;
-    }
+function createNumberIcon(
+  number,
+  color
+) {
+  return L.divIcon({
+    className:
+      "",
 
+    html: `
+      <div style="
+        width:36px;
+        height:36px;
 
-    // For 3 cameras:
-    //
-    // Highest → RED
-    // Middle  → ORANGE
-    // Lowest  → GREEN
+        border-radius:50%;
 
-    if (index === 0) {
-      result[camera.camera_id] = {
-        level: "High",
-        color: "#ef4444",
-      };
-    }
+        background:${color};
 
-    else if (index === 1) {
-      result[camera.camera_id] = {
-        level: "Medium",
-        color: "#f59e0b",
-      };
-    }
+        border:3px solid white;
 
-    else {
-      result[camera.camera_id] = {
-        level: "Low",
-        color: "#22c55e",
-      };
-    }
+        color:white;
+
+        display:flex;
+
+        align-items:center;
+        justify-content:center;
+
+        font-size:14px;
+        font-weight:800;
+
+        box-shadow:
+          0 5px 18px
+          rgba(15,23,42,.40);
+      ">
+        ${number}
+      </div>
+    `,
+
+    iconSize: [
+      36,
+      36,
+    ],
+
+    iconAnchor: [
+      18,
+      18,
+    ],
   });
+}
 
 
-  return result;
+// ============================================================
+// TIMESTAMP
+// ============================================================
+
+function formatTimestamp(
+  timestamp
+) {
+  if (!timestamp) {
+    return "Unavailable";
+  }
+
+  const date =
+    new Date(
+      String(
+        timestamp
+      ).replace(
+        " ",
+        "T"
+      )
+    );
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return timestamp;
+  }
+
+  return date
+    .toLocaleTimeString(
+      [],
+      {
+        hour:
+          "2-digit",
+
+        minute:
+          "2-digit",
+
+        second:
+          "2-digit",
+      }
+    );
 }
 
 
@@ -143,143 +573,313 @@ function CityMap({
   heatmap = [],
   trajectories = [],
   selectedPlate = null,
+
   showCameras = true,
+
+  // Existing prop retained.
+  // It now controls ROAD DENSITY instead of circles.
   showHeatmap = true,
+
   showTrajectories = true,
+
   height = 520,
 }) {
+  const [
+    roadNetwork,
+    setRoadNetwork,
+  ] = useState([]);
 
-  // ----------------------------------------------------------
-  // CAMERA POINTS
-  // ----------------------------------------------------------
-
-  const cameraPoints = useMemo(
-    () =>
-      asArray(heatmap).filter(
-        validCoords
-      ),
-    [heatmap]
+  const [
+    roadStatus,
+    setRoadStatus,
+  ] = useState(
+    "loading"
   );
 
 
-  // ----------------------------------------------------------
-  // RANK CAMERAS BY VEHICLE COUNT
-  // ----------------------------------------------------------
+  // ==========================================================
+  // LOAD ROAD GEOMETRY
+  // ==========================================================
 
-  const densityLevels = useMemo(
-    () =>
-      getDensityLevels(
-        cameraPoints
-      ),
-    [cameraPoints]
-  );
+  useEffect(() => {
+    let cancelled =
+      false;
 
-
-  // ----------------------------------------------------------
-  // TRAJECTORIES
-  // ----------------------------------------------------------
-
-  const visibleTrajectories =
-    useMemo(() => {
-
-      const list = asArray(
-        trajectories
-      ).filter(
-        (item) =>
-          routeLatLngs(item).length >= 2
-      );
-
-
-      if (!selectedPlate) {
-        return list;
-      }
-
-
-      return list.filter(
-        (item) =>
-          String(
-            item.plate
-          ).toUpperCase()
-          ===
-          String(
-            selectedPlate
-          ).toUpperCase()
-      );
-
-    }, [
-      selectedPlate,
-      trajectories,
-    ]);
-
-
-  // ----------------------------------------------------------
-  // MAP BOUNDS
-  // ----------------------------------------------------------
-
-  const boundPoints = useMemo(() => {
-
-    const points =
-      cameraPoints.map(
-        (camera) => [
-          Number(camera.lat),
-          Number(camera.lon),
-        ]
-      );
-
-
-    visibleTrajectories.forEach(
-      (trajectory) => {
-
-        points.push(
-          ...routeLatLngs(
-            trajectory
-          )
+    async function
+    loadRoadNetwork() {
+      try {
+        setRoadStatus(
+          "loading"
         );
 
+        const response =
+          await getRoadNetwork();
+
+        if (
+          !cancelled
+        ) {
+          setRoadNetwork(
+            asArray(
+              response.data
+            )
+          );
+
+          setRoadStatus(
+            "ready"
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Road network error:",
+          error
+        );
+
+        if (
+          !cancelled
+        ) {
+          setRoadNetwork(
+            []
+          );
+
+          setRoadStatus(
+            "fallback"
+          );
+        }
       }
+    }
+
+    loadRoadNetwork();
+
+    return () => {
+      cancelled =
+        true;
+    };
+  }, []);
+
+
+  // ==========================================================
+  // CAMERA LOCATIONS
+  // ==========================================================
+
+  const cameraPoints =
+    useMemo(
+      () =>
+        asArray(
+          heatmap
+        ).filter(
+          validCoords
+        ),
+
+      [heatmap]
     );
 
 
-    return points;
+  // ==========================================================
+  // SEGMENT TRAFFIC COUNTS
+  // ==========================================================
 
-  }, [
-    cameraPoints,
-    visibleTrajectories,
-  ]);
+  const segmentCounts =
+    useMemo(
+      () =>
+        buildSegmentCounts(
+          trajectories
+        ),
 
+      [trajectories]
+    );
+
+
+  const maxSegmentCount =
+    useMemo(() => {
+      const values =
+        Object.values(
+          segmentCounts
+        );
+
+      if (
+        values.length === 0
+      ) {
+        return 0;
+      }
+
+      return Math.max(
+        ...values
+      );
+    }, [
+      segmentCounts,
+    ]);
+
+
+  // ==========================================================
+  // FILTER SELECTED PLATE
+  // ==========================================================
+
+  const visibleTrajectories =
+    useMemo(() => {
+      const list =
+        asArray(
+          trajectories
+        ).filter(
+          (trajectory) =>
+            asArray(
+              trajectory
+                ?.route
+            ).filter(
+              validCoords
+            ).length >=
+            2
+        );
+
+      if (
+        !selectedPlate
+      ) {
+        return [];
+      }
+
+      const normalized =
+        String(
+          selectedPlate
+        ).toUpperCase();
+
+      return list.filter(
+        (trajectory) =>
+          String(
+            trajectory
+              .plate
+          ).toUpperCase() ===
+          normalized
+      );
+    }, [
+      trajectories,
+      selectedPlate,
+    ]);
+
+
+  // ==========================================================
+  // MAP BOUNDS
+  // ==========================================================
+
+  const boundPoints =
+    useMemo(() => {
+      const points =
+        cameraPoints.map(
+          (camera) => [
+            Number(
+              camera.lat
+            ),
+
+            Number(
+              camera.lon
+            ),
+          ]
+        );
+
+      asArray(
+        roadNetwork
+      ).forEach(
+        (road) => {
+          points.push(
+            ...normalizeRoadPoints(
+              road.points
+            )
+          );
+        }
+      );
+
+      visibleTrajectories
+        .forEach(
+          (
+            trajectory
+          ) => {
+            points.push(
+              ...buildRoadTrajectory(
+                trajectory,
+                roadNetwork
+              )
+            );
+          }
+        );
+
+      return points;
+    }, [
+      cameraPoints,
+      roadNetwork,
+      visibleTrajectories,
+    ]);
+
+
+  // ==========================================================
+  // OSRM STATUS
+  // ==========================================================
+
+  const osrmSegments =
+    asArray(
+      roadNetwork
+    ).filter(
+      (route) =>
+        route.source ===
+        "osrm"
+    ).length;
+
+
+  // ==========================================================
+  // RENDER
+  // ==========================================================
 
   return (
-
     <div
-      className="city-map"
+      className=
+        "city-map"
+
       style={{
+        width:
+          "100%",
+
         height,
-        width: "100%",
-        borderRadius: "20px",
-        overflow: "hidden",
+
+        position:
+          "relative",
+
+        overflow:
+          "hidden",
+
+        borderRadius:
+          "20px",
       }}
     >
 
       <MapContainer
-        center={DEFAULT_CENTER}
+        center={
+          DEFAULT_CENTER
+        }
+
         zoom={13}
+
         scrollWheelZoom
-        className="leaflet-host"
+
+        className=
+          "leaflet-host"
+
         style={{
-          width: "100%",
-          height: "100%",
+          width:
+            "100%",
+
+          height:
+            "100%",
         }}
       >
 
-        {/* ==================================================
-            BASE MAP
-        ================================================== */}
+        {/* ====================================================
+            MODERN BASE MAP
+        ==================================================== */}
 
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+          attribution=
+            '&copy; OpenStreetMap contributors &copy; CARTO'
 
+          url=
+            "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        />
 
         <MapEffects
           points={
@@ -288,498 +888,634 @@ function CityMap({
         />
 
 
-        {/* ==================================================
-            CAMERA-WISE TRAFFIC DENSITY
-        ================================================== */}
+        {/* ====================================================
+            ROAD TRAFFIC DENSITY
+        ==================================================== */}
 
-        {showHeatmap
-          ? cameraPoints.map(
-              (camera) => {
+        {showHeatmap &&
+          asArray(
+            roadNetwork
+          ).map(
+            (
+              road,
+              index
+            ) => {
 
-                const density =
-                  densityLevels[
-                    camera.camera_id
-                  ] || {
-                    level: "Unknown",
-                    color: "#64748b",
-                  };
+              const roadPoints =
+                normalizeRoadPoints(
+                  road.points
+                );
 
+              if (
+                roadPoints.length <
+                2
+              ) {
+                return null;
+              }
 
-                return (
+              const key =
+                pairKey(
+                  road.from_camera,
+                  road.to_camera
+                );
 
-                  <Circle
-                    key={
-                      `density-${camera.camera_id}`
-                    }
-                    center={[
-                      Number(
-                        camera.lat
-                      ),
-                      Number(
-                        camera.lon
-                      ),
-                    ]}
+              const count =
+                segmentCounts[
+                  key
+                ] || 0;
 
-                    // Smaller zones:
-                    // prevents the ugly overlapping blobs
-                    radius={450}
+              const traffic =
+                getRoadTrafficInfo(
+                  count,
+                  maxSegmentCount
+                );
 
-                    pathOptions={{
-                      color:
-                        density.color,
+              return (
+                <Polyline
+                  key={`traffic-road-${index}`}
 
-                      fillColor:
-                        density.color,
+                  positions={
+                    roadPoints
+                  }
 
-                      fillOpacity:
-                        0.24,
+                  pathOptions={{
+                    color:
+                      traffic.color,
 
-                      opacity:
-                        0.75,
+                    weight:
+                      traffic.weight,
 
-                      weight:
-                        2,
-                    }}
-                  >
+                    opacity:
+                      0.72,
 
-                    <Popup>
+                    lineCap:
+                      "round",
+
+                    lineJoin:
+                      "round",
+                  }}
+                >
+                  <Popup>
+                    <strong>
+                      {
+                        road.from_camera
+                      }
+                      {" → "}
+                      {
+                        road.to_camera
+                      }
+                    </strong>
+
+                    <div
+                      style={{
+                        marginTop:
+                          "6px",
+                      }}
+                    >
+                      Traffic:
+                      {" "}
 
                       <strong>
                         {
-                          camera.camera_id
+                          traffic.level
                         }
                       </strong>
+                    </div>
 
+                    <div>
+                      Reconstructed vehicles:
+                      {" "}
+                      {
+                        count
+                      }
+                    </div>
 
+                    {road.distance_km !=
+                      null && (
                       <div>
-                        Traffic level:{" "}
-                        <strong>
-                          {
-                            density.level
-                          }
-                        </strong>
-                      </div>
-
-
-                      <div>
-                        Vehicle count:{" "}
+                        Road distance:
+                        {" "}
                         {
-                          camera.vehicle_count ??
-                          0
+                          road.distance_km
                         }
+                        {" km"}
                       </div>
+                    )}
 
-                    </Popup>
+                    <div>
+                      Geometry:
+                      {" "}
+                      {
+                        road.source ===
+                        "osrm"
+                          ? "Road network"
+                          : "Fallback"
+                      }
+                    </div>
+                  </Popup>
+                </Polyline>
+              );
+            }
+          )}
 
-                  </Circle>
+
+        {/* ====================================================
+            SELECTED VEHICLE TRAJECTORY
+        ==================================================== */}
+
+        {showTrajectories &&
+          visibleTrajectories.map(
+            (
+              trajectory
+            ) => {
+
+              const route =
+                buildRoadTrajectory(
+                  trajectory,
+                  roadNetwork
                 );
+
+              if (
+                route.length <
+                2
+              ) {
+                return null;
               }
-            )
-          : null}
 
+              const color =
+                plateColor(
+                  trajectory.plate
+                );
 
-        {/* ==================================================
-            TRAJECTORY LINES
-        ================================================== */}
+              return (
+                <>
 
-        {showTrajectories
-          ? visibleTrajectories.map(
-              (trajectory) => {
-
-                const latlngs =
-                  routeLatLngs(
-                    trajectory
-                  );
-
-
-                const color =
-                  plateColor(
-                    trajectory.plate
-                  );
-
-
-                return (
+                  {/* White outline makes selected route visible
+                      above congestion roads */}
 
                   <Polyline
-                    key={
-                      `route-${trajectory.plate}`
-                    }
+                    key={`selected-outline-${trajectory.plate}`}
 
                     positions={
-                      latlngs
+                      route
                     }
-
-                    pathOptions={{
-                      color,
-
-                      weight:
-                        selectedPlate ===
-                        trajectory.plate
-                          ? 5
-                          : 3,
-
-                      opacity:
-                        0.8,
-                    }}
-                  >
-
-                    <Popup>
-
-                      <strong>
-                        {
-                          trajectory.plate
-                        }
-                      </strong>
-
-
-                      <div>
-
-                        {asArray(
-                          trajectory.route
-                        )
-                          .map(
-                            (point) =>
-                              point.camera_id
-                          )
-                          .filter(Boolean)
-                          .join(
-                            " → "
-                          )}
-
-                      </div>
-
-                    </Popup>
-
-                  </Polyline>
-                );
-              }
-            )
-          : null}
-
-
-        {/* ==================================================
-            CAMERA MARKERS
-        ================================================== */}
-
-        {showCameras
-          ? cameraPoints.map(
-              (camera) => {
-
-                const density =
-                  densityLevels[
-                    camera.camera_id
-                  ] || {
-                    level: "Unknown",
-                    color: "#2563eb",
-                  };
-
-
-                return (
-
-                  <CircleMarker
-                    key={
-                      `cam-${camera.camera_id}`
-                    }
-
-                    center={[
-                      Number(
-                        camera.lat
-                      ),
-                      Number(
-                        camera.lon
-                      ),
-                    ]}
-
-                    radius={7}
 
                     pathOptions={{
                       color:
                         "#ffffff",
 
                       weight:
-                        2,
+                        10,
 
-                      fillColor:
-                        density.color,
+                      opacity:
+                        0.92,
 
-                      fillOpacity:
+                      lineCap:
+                        "round",
+
+                      lineJoin:
+                        "round",
+                    }}
+                  />
+
+
+                  <Polyline
+                    key={`selected-route-${trajectory.plate}`}
+
+                    positions={
+                      route
+                    }
+
+                    pathOptions={{
+                      color,
+
+                      weight:
+                        6,
+
+                      opacity:
                         1,
+
+                      lineCap:
+                        "round",
+
+                      lineJoin:
+                        "round",
                     }}
                   >
-
-                    <Tooltip
-                      direction="top"
-                      offset={[
-                        0,
-                        -7,
-                      ]}
-                      permanent
-                    >
-
-                      {
-                        camera.camera_id
-                      }
-
-                    </Tooltip>
-
-
                     <Popup>
-
                       <strong>
                         {
-                          camera.camera_id
+                          trajectory.plate
                         }
                       </strong>
 
-
                       <div>
-                        Traffic:{" "}
-                        {
-                          density.level
-                        }
+                        Probable
+                        reconstructed
+                        road route
                       </div>
 
-
                       <div>
-                        Vehicle count:{" "}
-                        {
-                          camera.vehicle_count ??
-                          0
-                        }
-                      </div>
-
-
-                      <div>
-
-                        {
-                          Number(
-                            camera.lat
-                          ).toFixed(
-                            4
+                        {asArray(
+                          trajectory.route
+                        )
+                          .map(
+                            (
+                              point
+                            ) =>
+                              point.camera_id
                           )
-                        }
-
-                        ,{" "}
-
-                        {
-                          Number(
-                            camera.lon
-                          ).toFixed(
-                            4
+                          .filter(
+                            Boolean
                           )
-                        }
-
+                          .join(
+                            " → "
+                          )}
                       </div>
-
                     </Popup>
+                  </Polyline>
 
-                  </CircleMarker>
+                </>
+              );
+            }
+          )}
+
+
+        {/* ====================================================
+            CAMERA MARKERS
+        ==================================================== */}
+
+        {showCameras &&
+          cameraPoints.map(
+            (
+              camera
+            ) => {
+
+              return (
+                <CircleMarker
+                  key={`camera-${camera.camera_id}`}
+
+                  center={[
+                    Number(
+                      camera.lat
+                    ),
+
+                    Number(
+                      camera.lon
+                    ),
+                  ]}
+
+                  radius={8}
+
+                  pathOptions={{
+                    color:
+                      "#ffffff",
+
+                    fillColor:
+                      "#2563eb",
+
+                    fillOpacity:
+                      1,
+
+                    weight:
+                      3,
+                  }}
+                >
+                  <Tooltip
+                    permanent
+
+                    direction=
+                      "top"
+
+                    offset={[
+                      0,
+                      -10,
+                    ]}
+                  >
+                    {
+                      camera.camera_id
+                    }
+                  </Tooltip>
+
+                  <Popup>
+                    <strong>
+                      {
+                        camera.camera_id
+                      }
+                    </strong>
+
+                    <div>
+                      Unique plates:
+                      {" "}
+                      {
+                        camera.vehicle_count ??
+                        0
+                      }
+                    </div>
+
+                    <div>
+                      {Number(
+                        camera.lat
+                      ).toFixed(
+                        4
+                      )}
+                      ,
+                      {" "}
+                      {Number(
+                        camera.lon
+                      ).toFixed(
+                        4
+                      )}
+                    </div>
+                  </Popup>
+                </CircleMarker>
+              );
+            }
+          )}
+
+
+        {/* ====================================================
+            NUMBERED OBSERVATIONS
+        ==================================================== */}
+
+        {showTrajectories &&
+          visibleTrajectories.flatMap(
+            (
+              trajectory
+            ) => {
+
+              const color =
+                plateColor(
+                  trajectory.plate
                 );
-              }
-            )
-          : null}
 
-
-        {/* ==================================================
-            ROUTE OBSERVATION POINTS
-        ================================================== */}
-
-        {showTrajectories
-          ? visibleTrajectories.flatMap(
-              (trajectory) =>
-
-                asArray(
-                  trajectory.route
+              return asArray(
+                trajectory.route
+              )
+                .filter(
+                  validCoords
                 )
-                  .filter(
-                    validCoords
-                  )
-                  .map(
-                    (
-                      point,
-                      index
-                    ) => (
+                .map(
+                  (
+                    point,
+                    index
+                  ) => (
 
-                      <CircleMarker
-                        key={
-                          `${trajectory.plate}-${point.camera_id}-${index}`
-                        }
+                    <Marker
+                      key={`${trajectory.plate}-${point.camera_id}-${index}`}
 
-                        center={[
-                          Number(
-                            point.lat
-                          ),
-                          Number(
-                            point.lon
-                          ),
-                        ]}
+                      position={[
+                        Number(
+                          point.lat
+                        ),
 
-                        radius={4}
+                        Number(
+                          point.lon
+                        ),
+                      ]}
 
-                        pathOptions={{
-                          color:
-                            plateColor(
-                              trajectory.plate
-                            ),
-
-                          fillColor:
-                            "#0f172a",
-
-                          fillOpacity:
+                      icon={
+                        createNumberIcon(
+                          index +
                             1,
 
-                          weight:
-                            2,
-                        }}
+                          color
+                        )
+                      }
+                    >
+
+                      <Tooltip
+                        direction=
+                          "right"
+
+                        offset={[
+                          18,
+                          0,
+                        ]}
                       >
+                        <strong>
+                          {
+                            index +
+                            1
+                          }
+                          .
+                          {" "}
+                          {
+                            point.camera_id
+                          }
+                        </strong>
 
-                        <Popup>
+                        <br />
 
-                          <strong>
-                            {
-                              trajectory.plate
-                            }
-                          </strong>
-
-
-                          <div>
-
-                            Camera:{" "}
-                            {
-                              point.camera_id ||
-                              "Unknown"
-                            }
-
-                          </div>
-
-
-                          <div>
-
-                            Time:{" "}
-                            {
-                              point.timestamp ||
-                              "Unavailable"
-                            }
-
-                          </div>
+                        {
+                          formatTimestamp(
+                            point.timestamp
+                          )
+                        }
+                      </Tooltip>
 
 
-                          {point.plate_read
-                            ? (
-                              <div>
-                                OCR:{" "}
-                                {
-                                  point.plate_read
-                                }
-                              </div>
-                            )
-                            : null}
+                      <Popup>
+                        <strong>
+                          {
+                            trajectory.plate
+                          }
+                        </strong>
 
-                        </Popup>
+                        <div>
+                          Observation #
+                          {
+                            index +
+                            1
+                          }
+                        </div>
 
-                      </CircleMarker>
-                    )
+                        <div>
+                          Camera:
+                          {" "}
+                          {
+                            point.camera_id
+                          }
+                        </div>
+
+                        <div>
+                          Time:
+                          {" "}
+                          {
+                            point.timestamp
+                          }
+                        </div>
+                      </Popup>
+
+                    </Marker>
+
                   )
-            )
-          : null}
+                );
+            }
+          )}
 
       </MapContainer>
 
 
-      {/* ====================================================
-          DENSITY LEGEND
-      ==================================================== */}
+      {/* ======================================================
+          ROAD DENSITY LEGEND
+      ====================================================== */}
 
       <div
         style={{
-          position: "absolute",
-          bottom: "28px",
-          left: "28px",
-          zIndex: 1000,
+          position:
+            "absolute",
+
+          bottom:
+            "24px",
+
+          left:
+            "24px",
+
+          zIndex:
+            1000,
 
           background:
-            "rgba(15,23,42,0.94)",
+            "rgba(15,23,42,.94)",
 
           border:
-            "1px solid rgba(148,163,184,0.22)",
+            "1px solid rgba(148,163,184,.18)",
 
           borderRadius:
             "12px",
 
-          padding:
-            "12px 16px",
-
           color:
             "#e2e8f0",
 
-          fontSize:
-            "13px",
+          padding:
+            "12px 16px",
 
           boxShadow:
-            "0 8px 24px rgba(0,0,0,0.25)",
+            "0 8px 24px rgba(0,0,0,.25)",
+
+          fontSize:
+            "13px",
         }}
       >
 
         <div
           style={{
-            fontWeight: 700,
-            marginBottom: "9px",
+            fontWeight:
+              700,
+
+            marginBottom:
+              "8px",
           }}
         >
-          Traffic Density
+          Road Traffic Density
         </div>
 
 
         <div
           style={{
-            display: "flex",
-            gap: "16px",
+            display:
+              "flex",
+
+            gap:
+              "15px",
           }}
         >
 
           <span>
-            <span
-              style={{
-                display: "inline-block",
-                width: "10px",
-                height: "10px",
-                borderRadius: "50%",
-                background: "#22c55e",
-                marginRight: "6px",
-              }}
-            />
-            Low
+            🟢 Low
           </span>
-
 
           <span>
-            <span
-              style={{
-                display: "inline-block",
-                width: "10px",
-                height: "10px",
-                borderRadius: "50%",
-                background: "#f59e0b",
-                marginRight: "6px",
-              }}
-            />
-            Medium
+            🟠 Moderate
           </span>
-
 
           <span>
-            <span
-              style={{
-                display: "inline-block",
-                width: "10px",
-                height: "10px",
-                borderRadius: "50%",
-                background: "#ef4444",
-                marginRight: "6px",
-              }}
-            />
-            High
+            🔴 High
           </span>
+
+        </div>
+
+      </div>
+
+
+      {/* ======================================================
+          INFO PANEL
+      ====================================================== */}
+
+      <div
+        style={{
+          position:
+            "absolute",
+
+          top:
+            "18px",
+
+          right:
+            "18px",
+
+          zIndex:
+            1000,
+
+          maxWidth:
+            "315px",
+
+          background:
+            "rgba(15,23,42,.94)",
+
+          color:
+            "#e2e8f0",
+
+          padding:
+            "11px 15px",
+
+          borderRadius:
+            "12px",
+
+          border:
+            "1px solid rgba(148,163,184,.18)",
+
+          boxShadow:
+            "0 8px 25px rgba(0,0,0,.22)",
+
+          fontSize:
+            "12px",
+        }}
+      >
+
+        <strong>
+          {selectedPlate
+            ? selectedPlate
+            : "UrbanSight Road Intelligence"}
+        </strong>
+
+
+        <div
+          style={{
+            color:
+              "#94a3b8",
+
+            marginTop:
+              "5px",
+
+            lineHeight:
+              1.45,
+          }}
+        >
+
+          {roadStatus ===
+          "loading"
+            ? "Loading road network..."
+
+            : osrmSegments >
+                0
+
+              ? selectedPlate
+
+                ? "Highlighted path is a probable road-network trajectory reconstructed between confirmed ANPR observations."
+
+                : "Road colors represent relative traffic volume derived from reconstructed vehicle trajectories."
+
+              : "Road routing service unavailable. Some paths may use direct camera links."}
 
         </div>
 
@@ -788,6 +1524,5 @@ function CityMap({
     </div>
   );
 }
-
 
 export default CityMap;
