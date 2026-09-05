@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle, Loader2, Upload, Video } from "lucide-react";
+import {
+  CheckCircle,
+  FileVideo,
+  Loader2,
+  Play,
+  Upload,
+  Video,
+} from "lucide-react";
 import {
   getVideoOutputUrl,
   getVideoStatus,
@@ -10,20 +17,24 @@ function VideoAnalysisPage() {
   const fileInputRef = useRef(null);
 
   const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [jobId, setJobId] = useState(null);
   const [status, setStatus] = useState(null);
   const [error, setError] = useState(null);
 
   function handleFileChange(event) {
-    const file = event.target.files?.[0];
+  const file = event.target.files?.[0];
 
-    if (file) {
-      setSelectedFile(file);
-      setJobId(null);
-      setStatus(null);
-      setError(null);
-    }
+  if (file) {
+    setSelectedFile(file);
+    setJobId(null);
+    setStatus(null);
+    setError(null);
+
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
   }
+}
 
   function handleChooseVideo() {
     fileInputRef.current?.click();
@@ -82,7 +93,9 @@ function VideoAnalysisPage() {
         console.error(err);
         clearInterval(intervalId);
         setStatus("failed");
-        setError("Could not check video processing status.");
+        setError(
+          "Could not check video processing status."
+        );
       }
     }
 
@@ -104,124 +117,311 @@ function VideoAnalysisPage() {
 
   return (
     <section className="page video-analysis-page">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">AI VIDEO PROCESSING</p>
 
-          <h1>Video Analysis</h1>
+      {/* PAGE HEADER */}
+      <div className="video-page-header">
+        <div>
+          <div className="video-section-label">
+            VIDEO ANALYSIS
+          </div>
+
+          <h1>Traffic Video Investigation</h1>
 
           <p>
-            Upload a traffic video to run UrbanSight AI
-            detection and ANPR.
+            Process recorded CCTV footage and review
+            detected license plates and tracked objects.
           </p>
+        </div>
+
+        <div className="video-system-status">
+          <span className="status-dot" />
+          ANALYSIS SYSTEM
         </div>
       </div>
 
-      <div className="video-upload-card">
-        <div className="upload-icon">
-          <Video size={32} />
-        </div>
+      {/* MAIN WORKSPACE */}
+      <div className="video-workspace">
 
-        <h2>Upload CCTV Video</h2>
+        {/* SOURCE PANEL */}
+        <div className="video-panel source-panel">
 
-        <p>
-          Select a traffic video to analyze vehicle and
-          license plate detections.
-        </p>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="video/*"
-          onChange={handleFileChange}
-          hidden
-        />
-
-        <button
-          className="upload-button"
-          type="button"
-          onClick={handleChooseVideo}
-          disabled={isProcessing}
-        >
-          <Upload size={18} />
-          Choose Video
-        </button>
-
-        {selectedFile ? (
-          <div className="selected-file">
-            <strong>Selected:</strong>{" "}
-            {selectedFile.name}
+          <div className="panel-heading">
+            <div>
+              <span className="panel-index">01</span>
+              <div>
+                <h2>Source Video</h2>
+                <p>Select CCTV footage for analysis</p>
+              </div>
+            </div>
           </div>
-        ) : (
-          <span className="upload-hint">
-            MP4, AVI, MOV or other supported video formats
-          </span>
-        )}
 
-        {selectedFile && !jobId && (
-          <button
-            className="upload-button"
-            type="button"
-            onClick={handleUpload}
-            disabled={status === "uploading"}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="video/*"
+            onChange={handleFileChange}
+            hidden
+          />
+
+          <div
+            className={`video-drop-zone ${
+              selectedFile ? "has-file" : ""
+            }`}
+            onClick={handleChooseVideo}
           >
-            {status === "uploading" ? (
+            
+            {previewUrl && (
+        <div className="video-preview">
+            <div className="video-preview-label">
+                VIDEO PREVIEW
+            </div>
+
+            <video
+                src={previewUrl}
+                controls
+                muted
+                className="preview-video"
+            />
+        </div>
+    )}
+            <div className="video-file-icon">
+              {selectedFile ? (
+                <FileVideo size={26} />
+              ) : (
+                <Video size={26} />
+              )}
+            </div>
+
+            {selectedFile ? (
               <>
-                <Loader2 size={18} className="spin" />
-                Uploading...
+                <strong>{selectedFile.name}</strong>
+
+                <span>
+                  {(selectedFile.size / (1024 * 1024)).toFixed(
+                    1
+                  )}{" "}
+                  MB
+                </span>
               </>
             ) : (
               <>
-                <Upload size={18} />
-                Start Analysis
+                <strong>Select CCTV footage</strong>
+
+                <span>
+                  MP4, AVI, MOV and other video formats
+                </span>
               </>
             )}
-          </button>
-        )}
 
-        {isProcessing && (
-          <div className="video-status">
-            <Loader2 size={20} className="spin" />
+            <button
+              type="button"
+              className="secondary-video-button"
+              onClick={(event) => {
+                event.stopPropagation();
+                handleChooseVideo();
+              }}
+              disabled={isProcessing}
+            >
+              <Upload size={16} />
+              {selectedFile ? "Change Video" : "Browse Files"}
+            </button>
+          </div>
 
+          {selectedFile && !jobId && (
+            <button
+              className="primary-video-button"
+              type="button"
+              onClick={handleUpload}
+              disabled={status === "uploading"}
+            >
+              {status === "uploading" ? (
+                <>
+                  <Loader2
+                    size={17}
+                    className="spin"
+                  />
+                  Uploading
+                </>
+              ) : (
+                <>
+                  <Play size={17} />
+                  Start Analysis
+                </>
+              )}
+            </button>
+          )}
+
+          {selectedFile && (
+            <div className="video-file-meta">
+              <span>INPUT</span>
+              <strong>{selectedFile.type || "Video file"}</strong>
+            </div>
+          )}
+        </div>
+
+        {/* PROCESSING PANEL */}
+        <div className="video-panel processing-panel">
+
+          <div className="panel-heading">
             <div>
-              <strong>
-                {status === "uploading"
-                  ? "Uploading video..."
-                  : "AI processing in progress..."}
-              </strong>
-
-              <span>
-                YOLO detection, tracking and ANPR are
-                running.
-              </span>
+              <span className="panel-index">02</span>
+              <div>
+                <h2>Processing</h2>
+                <p>Detection pipeline status</p>
+              </div>
             </div>
           </div>
-        )}
 
-        {isCompleted && jobId && (
-          <div className="video-result">
-            <div className="video-success">
-              <CheckCircle size={20} />
+          <div className="processing-status">
 
-              <strong>
-                Video processing completed
-              </strong>
+            <div
+              className={`large-status-indicator ${
+                isCompleted
+                  ? "complete"
+                  : isProcessing
+                  ? "active"
+                  : ""
+              }`}
+            >
+              {isCompleted ? (
+                <CheckCircle size={24} />
+              ) : isProcessing ? (
+                <Loader2
+                  size={24}
+                  className="spin"
+                />
+              ) : (
+                <Video size={24} />
+              )}
             </div>
 
+            <div>
+              <span className="status-caption">
+                STATUS
+              </span>
+
+              <strong>
+                {status === "uploading"
+                  ? "Uploading"
+                  : status === "queued"
+                  ? "Queued"
+                  : status === "processing"
+                  ? "Processing"
+                  : status === "completed"
+                  ? "Complete"
+                  : status === "failed"
+                  ? "Failed"
+                  : "Ready"}
+              </strong>
+            </div>
+          </div>
+
+          <div className="pipeline-list">
+
+            <div className="pipeline-row">
+              <span>01</span>
+              <div>
+                <strong>Object Detection</strong>
+                <small>YOLO inference</small>
+              </div>
+              <i
+                className={
+                  isProcessing || isCompleted
+                    ? "pipeline-active"
+                    : ""
+                }
+              />
+            </div>
+
+            <div className="pipeline-row">
+              <span>02</span>
+              <div>
+                <strong>Object Tracking</strong>
+                <small>ByteTrack</small>
+              </div>
+              <i
+                className={
+                  isProcessing || isCompleted
+                    ? "pipeline-active"
+                    : ""
+                }
+              />
+            </div>
+
+            <div className="pipeline-row">
+              <span>03</span>
+              <div>
+                <strong>Plate Recognition</strong>
+                <small>OCR / ANPR</small>
+              </div>
+              <i
+                className={
+                  isProcessing || isCompleted
+                    ? "pipeline-active"
+                    : ""
+                }
+              />
+            </div>
+
+          </div>
+
+          {isProcessing && (
+            <div className="processing-message">
+              <Loader2 size={15} className="spin" />
+
+              <span>
+                {status === "uploading"
+                  ? "Uploading footage to the server..."
+                  : "Analyzing footage. This may take some time."}
+              </span>
+            </div>
+          )}
+
+          {isCompleted && (
+            <div className="completed-message">
+              <CheckCircle size={16} />
+              Analysis completed successfully
+            </div>
+          )}
+
+          {error && (
+            <div className="video-error">
+              {error}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* RESULT */}
+      {isCompleted && jobId && (
+        <div className="video-result-panel">
+
+          <div className="result-header">
+            <div>
+              <span className="video-section-label">
+                ANALYSIS OUTPUT
+              </span>
+
+              <h2>Processed Footage</h2>
+            </div>
+
+            <div className="result-complete">
+              <CheckCircle size={16} />
+              COMPLETE
+            </div>
+          </div>
+
+          <div className="processed-video-wrapper">
             <video
               className="processed-video"
               controls
               src={getVideoOutputUrl(jobId)}
             />
           </div>
-        )}
 
-        {error && (
-          <div className="video-error">
-            {error}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
+
     </section>
   );
 }
