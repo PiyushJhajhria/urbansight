@@ -1,10 +1,18 @@
-import { Activity, AlertTriangle, Camera, MapPinned, Route } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  Camera,
+  MapPinned,
+  Route,
+  Video,
+} from "lucide-react";
 
 const NAV_ITEMS = [
   { id: "overview", label: "Overview", icon: Activity },
   { id: "map", label: "Live Map", icon: MapPinned },
   { id: "trajectories", label: "Trajectories", icon: Route },
   { id: "cameras", label: "Cameras", icon: Camera },
+  { id: "video-analysis", label: "Video Analysis", icon: Video },
   { id: "alerts", label: "Alerts", icon: AlertTriangle },
 ];
 

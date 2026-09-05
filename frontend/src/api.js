@@ -80,4 +80,17 @@ export const getRoadRoute = (
     },
   });
 
+export const uploadVideo = (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return api.post("/video/upload", formData);
+};
+
+export const getVideoStatus = (jobId) =>
+  api.get(`/video/status/${jobId}`);
+
+export const getVideoOutputUrl = (jobId) =>
+  `${api.defaults.baseURL}/video/output/${jobId}`;
+
 export default api;

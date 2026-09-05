@@ -2,6 +2,8 @@ import cv2
 import re
 import math
 import requests
+import argparse
+import os
 
 from ultralytics import YOLO
 from paddleocr import PaddleOCR
@@ -16,10 +18,31 @@ from difflib import SequenceMatcher
 
 CAMERA_ID = "CAM_02"
 
-VIDEO_PATH = "videos/Hey_Gemini_can_you_give_a_sim.mp4"
-
 BACKEND_EVENT_URL = "http://127.0.0.1:8000/events"
 
+
+# ============================================================
+# COMMAND-LINE VIDEO CONFIGURATION
+# ============================================================
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument(
+    "--input",
+    required=True,
+    help="Path to input video"
+)
+
+parser.add_argument(
+    "--output",
+    required=True,
+    help="Path to output processed video"
+)
+
+args = parser.parse_args()
+
+VIDEO_PATH = args.input
+OUTPUT_PATH = args.output
 
 OCR_FRAME_INTERVAL = 5
 
@@ -154,19 +177,33 @@ ocr = PaddleOCR(
 # VIDEO
 # ============================================================
 
-cap = cv2.VideoCapture(
-    VIDEO_PATH
-)
-
+cap = cv2.VideoCapture(VIDEO_PATH)
 
 if not cap.isOpened():
-
-    print(
-        f"ERROR: Could not open video: {VIDEO_PATH}"
-    )
-
+    print(f"ERROR: Could not open video: {VIDEO_PATH}")
     exit()
 
+fps = cap.get(cv2.CAP_PROP_FPS)
+
+if not fps or fps <= 0:
+    fps = 30
+
+frame_width = 1280
+frame_height = 720
+
+fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+
+writer = cv2.VideoWriter(
+    OUTPUT_PATH,
+    fourcc,
+    fps,
+    (frame_width, frame_height)
+)
+
+if not writer.isOpened():
+    print(f"ERROR: Could not create output video: {OUTPUT_PATH}")
+    cap.release()
+    exit()
 
 # ============================================================
 # STORAGE
@@ -1910,22 +1947,7 @@ while True:
     finalize_inactive_groups()
 
 
-    cv2.imshow(
-        "Tracked ANPR",
-        frame
-    )
-
-
-    if (
-        cv2.waitKey(1)
-        &
-        0xFF
-        ==
-        ord("q")
-    ):
-
-        break
-
+    writer.write(frame)
 
 # ============================================================
 # END-OF-VIDEO FINALIZATION
@@ -1961,9 +1983,12 @@ for group_id in list(
 # ============================================================
 
 cap.release()
-
+writer.release()
 cv2.destroyAllWindows()
 
+print(
+    f"OUTPUT VIDEO SAVED: {OUTPUT_PATH}"
+)
 
 # ============================================================
 # SUMMARY

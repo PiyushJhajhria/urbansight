@@ -10,6 +10,7 @@ import CamerasPage from "./pages/CamerasPage";
 import LiveMapPage from "./pages/LiveMapPage";
 import OverviewPage from "./pages/OverviewPage";
 import TrajectoriesPage from "./pages/TrajectoriesPage";
+import VideoAnalysisPage from "./pages/VideoAnalysisPage";
 import "./styles/dashboard.css";
 
 function DashboardShell() {
@@ -68,6 +69,7 @@ function DashboardShell() {
         {activePage === "map" ? <LiveMapPage /> : null}
         {activePage === "trajectories" ? <TrajectoriesPage /> : null}
         {activePage === "cameras" ? <CamerasPage /> : null}
+        {activePage === "video-analysis" ? <VideoAnalysisPage /> : null}
         {activePage === "alerts" ? <AlertsPage /> : null}
 
         <footer className="app-footer">
