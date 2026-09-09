@@ -1,7 +1,7 @@
 import json
 import urllib.parse
 import urllib.request
-import os
+
 
 from pathlib import Path
 from collections import defaultdict
@@ -42,18 +42,13 @@ app = FastAPI(
 )
 
 
-FRONTEND_URL = os.getenv(
-    "FRONTEND_URL",
-    "http://localhost:5173"
-)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        FRONTEND_URL,
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
