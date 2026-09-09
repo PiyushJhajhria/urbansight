@@ -72,7 +72,7 @@ function DashboardShell() {
 
         <footer className="app-footer">
           <Activity size={12} />
-          UrbanSight AI · {metrics.activeCameras} camera nodes · FastAPI 127.0.0.1:8000
+          UrbanSight AI · {metrics.activeCameras} camera nodes · FastAPI backend
         </footer>
       </main>
     </div>

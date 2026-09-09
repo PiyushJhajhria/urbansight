@@ -10,6 +10,7 @@ import {
 import {
   getAlerts,
   getCounts,
+  getEvents,
   getHeatmap,
   getOD,
   getSpeeds,
@@ -24,10 +25,6 @@ import {
 
 const DashboardContext =
   createContext(null);
-
-
-const API_BASE =
-  "http://127.0.0.1:8000";
 
 
 const POLL_INTERVAL_MS =
@@ -129,25 +126,7 @@ export function DashboardProvider({
             // RAW ANPR EVENTS
             // -----------------------------------------------
 
-            fetch(
-              `${API_BASE}/events`
-            ).then(
-              async (
-                response
-              ) => {
-
-                if (
-                  !response.ok
-                ) {
-                  throw new Error(
-                    "Events API failed"
-                  );
-                }
-
-                return response.json();
-
-              }
-            ),
+            getEvents(),
 
 
             getCounts(),
@@ -166,7 +145,7 @@ export function DashboardProvider({
 
           setEvents(
             asArray(
-              eventsResponse
+              eventsResponse.data
             )
           );
 
@@ -228,7 +207,7 @@ export function DashboardProvider({
 
 
           setError(
-            "Backend unavailable. Confirm FastAPI is running at http://127.0.0.1:8000"
+            "Backend unavailable. Confirm the FastAPI service is running and VITE_API_URL is configured."
           );
 
         }

@@ -17,7 +17,7 @@ from difflib import SequenceMatcher
 
 CAMERA_ID = "CAM_02"
 
-VIDEO_PATH = "videos/Hey_Gemini_can_you_give_a_sim.mp4"
+VIDEO_PATH = "videos/traffic.mp4"
 
 BACKEND_EVENT_URL = os.getenv(
     "BACKEND_EVENT_URL",
