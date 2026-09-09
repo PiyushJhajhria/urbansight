@@ -1,15 +1,21 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://127.0.0.1:8000",
+  baseURL:
+    import.meta.env.VITE_API_URL ||
+    "http://127.0.0.1:8000",
+
   timeout: 15000,
 });
 
+
 // ============================================================
-// BASIC
+// SYSTEM
 // ============================================================
 
-export const getRoot = () => api.get("/");
+export const getRoot = () =>
+  api.get("/");
+
 
 // ============================================================
 // EVENTS
@@ -17,6 +23,7 @@ export const getRoot = () => api.get("/");
 
 export const getEvents = () =>
   api.get("/events");
+
 
 // ============================================================
 // TRAJECTORIES
@@ -30,14 +37,11 @@ export const getVehicleTrajectory = (plate) =>
     `/trajectory/${encodeURIComponent(plate)}`
   );
 
-// ============================================================
-// PLATE SEARCH
-// ============================================================
-
 export const searchPlate = (plate) =>
   api.get(
     `/plate/${encodeURIComponent(plate)}`
   );
+
 
 // ============================================================
 // ALERTS
@@ -45,6 +49,7 @@ export const searchPlate = (plate) =>
 
 export const getAlerts = () =>
   api.get("/alerts");
+
 
 // ============================================================
 // ANALYTICS
@@ -62,8 +67,9 @@ export const getOD = () =>
 export const getHeatmap = () =>
   api.get("/analytics/heatmap");
 
+
 // ============================================================
-// ROAD NETWORK
+// ROAD NETWORK / GIS
 // ============================================================
 
 export const getRoadNetwork = () =>
@@ -79,5 +85,10 @@ export const getRoadRoute = (
       to_camera: toCamera,
     },
   });
+
+
+// ============================================================
+// DEFAULT EXPORT
+// ============================================================
 
 export default api;

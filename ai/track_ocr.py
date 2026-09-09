@@ -2,6 +2,7 @@ import cv2
 import re
 import math
 import requests
+import os
 
 from ultralytics import YOLO
 from paddleocr import PaddleOCR
@@ -18,7 +19,10 @@ CAMERA_ID = "CAM_02"
 
 VIDEO_PATH = "videos/Hey_Gemini_can_you_give_a_sim.mp4"
 
-BACKEND_EVENT_URL = "http://127.0.0.1:8000/events"
+BACKEND_EVENT_URL = os.getenv(
+    "BACKEND_EVENT_URL",
+    "http://127.0.0.1:8000/events"
+)
 
 
 OCR_FRAME_INTERVAL = 5
