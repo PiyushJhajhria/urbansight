@@ -875,10 +875,10 @@ function CityMap({
 
         <TileLayer
           attribution=
-            '&copy; OpenStreetMap contributors &copy; CARTO'
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 
           url=
-            "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
         <MapEffects
