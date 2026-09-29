@@ -15,7 +15,7 @@ from difflib import SequenceMatcher
 # CONFIGURATION
 # ============================================================
 
-CAMERA_ID = "CAM_02"
+CAMERA_ID = "CAM_01"
 
 VIDEO_PATH = "videos/traffic.mp4"
 
